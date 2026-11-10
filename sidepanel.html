@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SidePanel Prompt & Code Explainer</title>
+  <title>Code Explainer - Offline Engine</title>
   <link rel="stylesheet" href="sidepanel.css" />
 </head>
 <body>
@@ -16,35 +16,33 @@
       </svg>
       <h1>Code Explainer</h1>
     </div>
-    <div id="aiStatusBadge" class="ai-badge checking" title="Verificando IA local...">
+    <div class="engine-badge" title="Motor autónomo 100% local en JavaScript. Sin APIs, sin esperas y sin conexión a internet.">
       <span class="badge-dot"></span>
-      <span id="aiStatusText">Verificando IA...</span>
+      <span>Motor Local Activo</span>
     </div>
   </header>
 
-  <!-- Banner de información sobre activación de Gemini Nano si no está habilitado -->
-  <aside id="aiGuideBanner" class="info-banner hidden">
-    <div class="banner-content">
-      <strong>⚠️ Activar Gemini Nano en Chrome:</strong>
-      <ol>
-        <li>Abre <code>chrome://flags/#optimization-guide-on-device-model</code> y selecciona <b>Enabled BypassPerfRequirement</b>.</li>
-        <li>Abre <code>chrome://flags/#prompt-api-for-gemini-nano</code> y selecciona <b>Enabled</b>.</li>
-        <li>Reinicia Chrome y abre <code>chrome://components</code> para verificar la descarga de <b>Optimization Guide On Device Model</b>.</li>
-      </ol>
-      <button id="recheckAiBtn" class="btn btn-sm btn-primary" style="margin-top: 6px;">Volver a verificar</button>
-    </div>
-  </aside>
-
   <!-- Contenedor Principal -->
   <main class="main-container">
-    <!-- Visualizador de Código Seleccionado -->
+    <!-- Visualizador y Editor de Código -->
     <section class="panel-section">
       <div class="section-header">
-        <span class="section-title">Código Seleccionado</span>
-        <button id="clearCodeBtn" class="text-btn" title="Limpiar selección">Limpiar</button>
+        <span class="section-title">Código a Analizar</span>
+        <div class="header-actions">
+          <button id="pasteCodeBtn" class="text-btn" title="Pegar del portapapeles">Pegar</button>
+          <button id="clearCodeBtn" class="text-btn" title="Limpiar código">Limpiar</button>
+        </div>
       </div>
-      <div class="code-preview-wrapper">
-        <pre id="codePre"><code id="selectedCodeBlock" class="empty-code">Selecciona un fragmento de código en cualquier página web, haz clic derecho y pulsa "Analizar con Code Explainer"...</code></pre>
+      <div class="code-editor-wrapper">
+        <textarea
+          id="codeInput"
+          placeholder="Selecciona código en una página web (clic derecho) o escribe/pega aquí tu código directamente..."
+          spellcheck="false"
+        ></textarea>
+      </div>
+      <div class="code-meta-bar">
+        <span id="detectedLangTag" class="meta-tag">Lenguaje: Auto</span>
+        <span id="linesCountTag" class="meta-tag">0 líneas</span>
       </div>
     </section>
 
@@ -63,23 +61,12 @@
 
       <div class="refactor-container">
         <div class="target-lang-row">
-          <input
-            type="text"
-            id="targetLangInput"
-            list="langSuggestions"
-            placeholder="Lenguaje destino (ej. TypeScript, Python, Rust...)"
-            value="TypeScript"
-          />
-          <datalist id="langSuggestions">
-            <option value="TypeScript"></option>
-            <option value="JavaScript (ES6+)"></option>
-            <option value="Python"></option>
-            <option value="Rust"></option>
-            <option value="Go"></option>
-            <option value="C#"></option>
-            <option value="Java"></option>
-            <option value="C++"></option>
-          </datalist>
+          <select id="targetLangSelect" class="select-input">
+            <option value="TypeScript">Convertir a TypeScript (Clean Code)</option>
+            <option value="JavaScript Moderno">Modernizar a JavaScript ES2024</option>
+            <option value="Python">Traducir a Python 3</option>
+            <option value="Documentado">Generar JSDoc / Docstrings</option>
+          </select>
         </div>
         <button id="btnRefactor" class="btn btn-action btn-refactor" data-mode="refactor">
           <span class="btn-icon">⚡</span>
@@ -88,20 +75,14 @@
       </div>
     </section>
 
-    <!-- Indicador de Carga -->
-    <div id="loadingIndicator" class="loading-container hidden" role="status" aria-live="polite">
-      <div class="spinner"></div>
-      <span id="loadingText">Procesando localmente con Gemini Nano...</span>
-    </div>
-
     <!-- Área de Salida -->
     <section class="panel-section output-section">
       <div class="section-header">
-        <span id="outputTitle" class="section-title">Resultado</span>
-        <button id="copyOutputBtn" class="text-btn hidden" title="Copiar análisis al portapapeles">Copiar</button>
+        <span id="outputTitle" class="section-title">Resultado del Análisis</span>
+        <button id="copyOutputBtn" class="text-btn hidden" title="Copiar al portapapeles">Copiar</button>
       </div>
       <div id="output" class="output-area">
-        <p class="placeholder-text">Los resultados del análisis local aparecerán aquí.</p>
+        <p class="placeholder-text">Selecciona o pega código arriba y pulsa uno de los botones para ver el análisis instantáneo.</p>
       </div>
     </section>
   </main>

@@ -1,15 +1,15 @@
 const CONTEXT_MENU_ID = "analyze-code-selection";
 
-// Inicialización al instalar o actualizar la extensión
+// Inicialización de la extensión
 chrome.runtime.onInstalled.addListener(() => {
-  // Permitir que el clic en el icono de la extensión abra directamente el Side Panel
+  // Configurar para que al hacer clic en el icono de la extensión se abra el panel lateral
   if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
     chrome.sidePanel
       .setPanelBehavior({ openPanelOnActionClick: true })
-      .catch((err) => console.error("Error al configurar setPanelBehavior:", err));
+      .catch((err) => console.warn("setPanelBehavior:", err));
   }
 
-  // Registrar la entrada en el menú contextual solo para selecciones de texto
+  // Crear entrada en el menú contextual
   chrome.contextMenus.create({
     id: CONTEXT_MENU_ID,
     title: "Analizar con Code Explainer",
@@ -17,30 +17,39 @@ chrome.runtime.onInstalled.addListener(() => {
   });
 });
 
-// Manejo del evento al hacer clic en la opción del menú contextual
-chrome.contextMenus.onClicked.addListener((info, tab) => {
+// Manejo del clic en el menú contextual
+chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== CONTEXT_MENU_ID || !info.selectionText) {
     return;
   }
 
   const selectedCode = info.selectionText.trim();
 
-  // Abrir el panel lateral en la ventana actual.
-  // Es crucial ejecutarlo síncronamente dentro del handler del click para mantener el user gesture.
-  if (tab && tab.windowId && chrome.sidePanel && chrome.sidePanel.open) {
-    chrome.sidePanel
-      .open({ windowId: tab.windowId })
-      .catch((err) => console.error("Error abriendo sidePanel:", err));
+  // Abrir el SidePanel de forma compatible con Chrome (intentar tabId primero, luego windowId)
+  if (tab) {
+    try {
+      if (tab.id && chrome.sidePanel && chrome.sidePanel.open) {
+        await chrome.sidePanel.open({ tabId: tab.id });
+      }
+    } catch {
+      try {
+        if (tab.windowId && chrome.sidePanel && chrome.sidePanel.open) {
+          await chrome.sidePanel.open({ windowId: tab.windowId });
+        }
+      } catch (err) {
+        console.warn("No se pudo abrir el panel lateral automáticamente:", err);
+      }
+    }
   }
 
-  // Guardar en chrome.storage.local para persistencia
+  // Guardar en storage local
   chrome.storage.local.set(
     {
       lastSelectedCode: selectedCode,
       lastSelectionTimestamp: Date.now()
     },
     () => {
-      // Notificar al side panel en tiempo real si ya está abierto
+      // Notificar al panel si ya está montado
       chrome.runtime
         .sendMessage({
           type: "NEW_CODE_SELECTED",
@@ -50,10 +59,8 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
           }
         })
         .catch(() => {
-          // Si el side panel aún no está cargado o no hay listener listo, 
-          // sidepanel.js leerá el contenido de chrome.storage.local al montar.
+          // Ignorar si el panel no estaba abierto
         });
     }
   );
 });
-
