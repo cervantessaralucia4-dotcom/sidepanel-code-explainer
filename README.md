@@ -66,7 +66,7 @@ sidepanel-code-explainer/
 
 ### Paso 1: Clonar o descargar el repositorio
 ```bash
-git clone https://github.com/<tu-usuario>/sidepanel-code-explainer.git
+git clone https://github.com/cervantessaralucia4-dotcom/sidepanel-code-explainer.git
 cd sidepanel-code-explainer
 ```
 
@@ -113,3 +113,4 @@ Esta extensión respeta al 100% tu privacidad:
 ## 📄 Licencia
 
 Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
+
