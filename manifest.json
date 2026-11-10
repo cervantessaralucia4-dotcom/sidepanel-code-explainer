@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "SidePanel Prompt & Code Explainer",
+  "version": "1.0.0",
+  "description": "Analiza, detecta bugs y refactoriza fragmentos de código seleccionados directamente en el panel lateral de Chrome.",
+  "permissions": [
+    "sidePanel",
+    "contextMenus",
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Abrir Code Explainer"
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}
+

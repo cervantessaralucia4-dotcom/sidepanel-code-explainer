@@ -1,0 +1,17 @@
+# Logs y temporales
+*.log
+npm-debug.log*
+
+# Archivos de sistema operativo
+.DS_Store
+Thumbs.db
+
+# Directorios de IDEs y editores
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Llaves o variables de entorno locales (por seguridad)
+.env
+.env.local
