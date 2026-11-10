@@ -1,16 +1,13 @@
 {
   "manifest_version": 3,
   "name": "SidePanel Prompt & Code Explainer",
-  "version": "1.0.0",
-  "description": "Analiza, detecta bugs y refactoriza fragmentos de código seleccionados directamente en el panel lateral de Chrome.",
+  "version": "1.1.0",
+  "description": "Analiza, detecta bugs y refactoriza código en el panel lateral usando la IA local nativa de Chrome (Gemini Nano) sin API Key ni conexión a internet.",
   "permissions": [
     "sidePanel",
     "contextMenus",
     "storage",
     "activeTab"
-  ],
-  "host_permissions": [
-    "https://generativelanguage.googleapis.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -28,4 +25,3 @@
     "128": "icons/icon128.png"
   }
 }
-

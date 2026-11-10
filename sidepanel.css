@@ -80,94 +80,79 @@ body {
   letter-spacing: -0.2px;
 }
 
-.icon-btn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
-  display: flex;
+/* Badge de Estado de IA Nativa */
+.ai-badge {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-}
-
-.icon-btn:hover {
-  color: var(--text-primary);
+  gap: 6px;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 12px;
   background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  user-select: none;
 }
 
-/* Panel de Configuración Desplegable */
-.settings-panel {
+.badge-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--text-muted);
+}
+
+.ai-badge.ready .badge-dot { background-color: var(--success); box-shadow: 0 0 6px rgba(4, 211, 97, 0.5); }
+.ai-badge.ready { color: var(--success); border-color: rgba(4, 211, 97, 0.3); }
+
+.ai-badge.checking .badge-dot { background-color: var(--warning); }
+.ai-badge.checking { color: var(--warning); }
+
+.ai-badge.downloading .badge-dot { background-color: var(--warning); animation: pulse 1s infinite alternate; }
+.ai-badge.downloading { color: var(--warning); }
+
+.ai-badge.error .badge-dot { background-color: var(--danger); }
+.ai-badge.error { color: var(--danger); border-color: rgba(247, 90, 104, 0.3); }
+
+@keyframes pulse {
+  from { opacity: 0.4; }
+  to { opacity: 1; }
+}
+
+/* Banner Informativo */
+.info-banner {
+  background-color: rgba(130, 87, 229, 0.08);
+  border-bottom: 1px solid var(--accent);
   padding: 12px 14px;
-  background-color: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
-  transition: all 0.2s ease;
+  font-size: 11.5px;
+  color: var(--text-primary);
 }
 
-.settings-panel.hidden {
+.info-banner.hidden {
   display: none;
 }
 
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+.banner-content strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #ffffff;
 }
 
-.field-group label {
-  font-size: 11px;
-  font-weight: 600;
-  text-transform: uppercase;
+.banner-content ol {
+  margin: 4px 0 8px 18px;
   color: var(--text-secondary);
-  letter-spacing: 0.5px;
 }
 
-.input-row {
-  display: flex;
-  gap: 8px;
+.banner-content li {
+  margin-bottom: 4px;
 }
 
-.input-row input,
-.target-lang-row input,
-.select-input {
-  flex: 1;
+.banner-content code {
+  font-family: var(--font-mono);
   background-color: var(--bg-primary);
   border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 12px;
-  padding: 7px 10px;
-  outline: none;
-  transition: border-color 0.2s;
+  padding: 1px 4px;
+  border-radius: 3px;
+  color: var(--accent-hover);
 }
-
-.input-row input:focus,
-.target-lang-row input:focus,
-.select-input:focus {
-  border-color: var(--accent);
-}
-
-.field-group-sub {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.field-group-sub label {
-  font-size: 11px;
-  color: var(--text-muted);
-}
-
-.status-msg {
-  font-size: 11px;
-  margin-top: 4px;
-  min-height: 14px;
-}
-.status-msg.success { color: var(--success); }
-.status-msg.error { color: var(--danger); }
 
 /* Contenedor Principal */
 .main-container {
@@ -265,12 +250,20 @@ body {
   margin-top: 2px;
 }
 
-.target-lang-row {
-  display: flex;
-}
-
 .target-lang-row input {
   width: 100%;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  padding: 7px 10px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.target-lang-row input:focus {
+  border-color: var(--accent);
 }
 
 .btn {
@@ -304,7 +297,7 @@ body {
 }
 
 .btn-sm {
-  padding: 6px 12px;
+  padding: 5px 10px;
   font-size: 11px;
 }
 
@@ -389,7 +382,7 @@ body {
   font-style: italic;
 }
 
-/* Elementos formateados de Markdown en Output */
+/* Markdown en Output */
 .output-area h2, .output-area h3, .output-area h4 {
   margin: 10px 0 6px;
   font-size: 13px;
@@ -451,4 +444,3 @@ body {
   padding: 10px;
   border-radius: 6px;
 }
-

@@ -1,116 +1,105 @@
-# 🚀 SidePanel Prompt & Code Explainer
+# 🚀 SidePanel Prompt & Code Explainer (Gemini Nano Local)
 
-Una extensión moderna y ligera para Google Chrome (**Manifest V3**) que integra la inteligencia artificial de Google Gemini directamente en el panel lateral nativo (`chrome.sidePanel`). Diseñada para desarrolladores, estudiantes y auditores de software que necesitan comprender, auditar y transformar fragmentos de código mientras navegan por la web.
+Una extensión moderna para Google Chrome (**Manifest V3**) que aprovecha la **IA local integrada nativa de Chrome (Gemini Nano / Prompt API)** directamente en el panel lateral (`chrome.sidePanel`). 
 
-![Manifest V3](https://img.shields.io/badge/Manifest_V3-Chrome_116+-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
-![Google Gemini](https://img.shields.io/badge/Gemini_API-2.5_Flash_%2F_Pro-8E75C4?style=flat-square&logo=google&logoColor=white)
+**100% privada, en el dispositivo y sin requerir API Keys externas ni conexión a internet.**
+
+![Manifest V3](https://img.shields.io/badge/Manifest_V3-Chrome_127+-4285F4?style=flat-square&logo=googlechrome&logoColor=white)
+![Chrome Built-in AI](https://img.shields.io/badge/Chrome_Built--in_AI-Gemini_Nano_(On--Device)-34A853?style=flat-square&logo=google&logoColor=white)
+![No API Key Needed](https://img.shields.io/badge/API_Key-Not_Required-04d361?style=flat-square)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ---
 
-## 📌 ¿Qué problema resuelve?
+## 📌 ¿Qué ventajas ofrece?
 
-Al navegar por repositorios de GitHub, hilos de StackOverflow o documentación técnica, es común encontrar funciones complejas, snippets desactualizados o código en lenguajes que no dominamos por completo. 
-
-El flujo tradicional de copiar, cambiar de pestaña a un chat de IA, escribir el prompt y volver rompe el foco de atención. **SidePanel Prompt & Code Explainer** permite seleccionar cualquier fragmento de código, hacer clic derecho y analizarlo al instante en el lateral de la pantalla sin cambiar de pestaña ni perder el contexto de lectura.
+- **Cero configuración:** No necesitas registrarte en Google Cloud ni pagar cuotas o pegar API Keys. Funciona directo en tu navegador con el modelo local de Chrome.
+- **Privacidad total (On-Device):** Tu código jamás sale de tu ordenador hacia un servidor externo. Todo el procesamiento de IA ocurre en tu hardware local.
+- **Sin romper tu flujo de trabajo:** Selecciona cualquier código en GitHub, StackOverflow o documentación técnica, haz clic derecho y analízalo en el panel lateral de Chrome sin cambiar de pestaña.
 
 ---
 
 ## ✨ Características Principales
 
 ### 1. 📖 Explicación de Lógica Paso a Paso
-- Desglosa la arquitectura y el propósito general del bloque seleccionado.
-- Explica el flujo de ejecución de manera secuencial y pedagógica.
-- Analiza la complejidad algorítmica ($O(n)$, espacio y tiempo) y patrones utilizados.
+- Desglose didáctico del propósito y arquitectura del bloque seleccionado.
+- Flujo secuencial de ejecución y consideraciones de complejidad temporal y espacial ($O(n)$).
 
 ### 2. 🔍 Detección de Bugs, Vulnerabilidades y Casos Límite (Edge Cases)
-- Realiza una auditoría estática rápida del fragmento seleccionado.
-- Identifica desbordamientos, variables no controladas, nulos (`null` / `undefined`), concurrencia o condiciones de carrera.
-- Alerta sobre riesgos de inyección, sanitización o fugas de memoria.
-- Propone el parche o solución recomendada.
+- Auditoría de código en el dispositivo para detectar errores de lógica, coerción de tipos, desbordamientos y valores nulos/indefinidos.
+- Alertas de patrones inseguros y recomendaciones prácticas de remediación.
 
 ### 3. ⚡ Refactorización y Conversión de Sintaxis
-- Traduce y moderniza código a cualquier lenguaje o estándar deseado (TypeScript, Python 3, Rust, Go, Java, etc.).
-- Aplica principios de diseño limpio (*Clean Code*, inmutabilidad, tipado estricto, manejo seguro de errores).
-- Proporciona el código de reemplazo completo listo para copiar con un clic.
+- Traducción y modernización de snippets a cualquier lenguaje o estándar deseado (TypeScript, Python 3, Rust, Go, Java, C++, etc.).
+- Aplica principios *Clean Code*, inmutabilidad y tipado fuerte.
 
-### 4. 💻 Experiencia de Usuario Nativa
-- **Integración con `chrome.sidePanel`**: No obstruye la página web activa con ventanas modales o popups molestos.
-- **Tema Oscuro estilo IDE**: Paleta inspirada en DevTools (`#121214` / `#202024`) con resaltado de código monoespaciado (`JetBrains Mono`, `Fira Code`).
-- **Sincronización en tiempo real**: Si el panel ya está abierto, se actualiza automáticamente al seleccionar nuevo código en la página.
-- **Soporte de Modelos**: Permite alternar entre **Gemini 2.5 Flash** (respuestas ultrarrápidas) y **Gemini 2.5 Pro** (análisis y razonamiento profundo).
-- **Seguridad y Privacidad**: Tu API Key se guarda exclusivamente en el almacenamiento local de tu navegador (`chrome.storage.local`). Tus peticiones van directo a los servidores de Google sin intermediarios ni analíticas externas.
+### 4. ⚡ Streaming de Tokens en Tiempo Real
+- La respuesta generada por Gemini Nano fluye en tiempo real directamente en el panel lateral a medida que se procesa en el dispositivo.
 
 ---
 
-## 🛠️ Tecnologías y Arquitectura
+## 🛠️ Cómo habilitar Gemini Nano en Google Chrome
 
-```text
-sidepanel-code-explainer/
-├── manifest.json         # Configuración Manifest V3 y permisos nativos
-├── background.js         # Service Worker (Context Menu & apertura del Side Panel)
-├── sidepanel.html        # UI responsiva optimizada para paneles estrechos
-├── sidepanel.css         # Estilos oscuros modernos y scrollbars estilizadas
-├── sidepanel.js          # Control de estados, cliente REST Gemini y parser Markdown
-├── icons/                # Iconos en resoluciones estándar (16, 48, 128 px)
-└── README.md             # Documentación técnica
-```
+Para utilizar la IA local integrada de Chrome, asegúrate de activar los siguientes flags experimentales en tu navegador:
+
+1. Abre una nueva pestaña y ve a:
+   ```text
+   chrome://flags/#optimization-guide-on-device-model
+   ```
+   Selecciona **Enabled BypassPerfRequirement**.
+
+2. Ve a:
+   ```text
+   chrome://flags/#prompt-api-for-gemini-nano
+   ```
+   Selecciona **Enabled**.
+
+3. Haz clic en **Relaunch** (Reiniciar Chrome) para aplicar los cambios.
+
+4. *(Opcional)* Ve a `chrome://components` y verifica que el componente **Optimization Guide On Device Model** figure como actualizado/descargado.
+
+*(Nota: Si aún no tienes activos estos flags, la extensión cuenta con un motor de análisis heurístico local de respaldo para que nunca te quedes sin respuesta).*
 
 ---
 
-## 🚀 Instalación y Puesta en Marcha
+## 🚀 Instalación de la Extensión
 
-### Prerrequisitos
-1. Google Chrome (versión 116 o superior).
-2. Una API Key gratuita de Google Gemini, disponible en [Google AI Studio](https://aistudio.google.com/).
-
-### Paso 1: Clonar o descargar el repositorio
+### Paso 1: Clonar el repositorio
 ```bash
 git clone https://github.com/cervantessaralucia4-dotcom/sidepanel-code-explainer.git
 cd sidepanel-code-explainer
 ```
 
 ### Paso 2: Cargar la extensión en Google Chrome
-1. Abre Google Chrome y escribe en la barra de direcciones:
-   ```text
-   chrome://extensions/
-   ```
-2. Activa el interruptor **"Modo de desarrollador"** (Developer mode) situado en la esquina superior derecha.
-3. Haz clic en el botón **"Cargar descomprimida"** (Load unpacked).
-4. Selecciona la carpeta `sidepanel-code-explainer` donde se encuentra este proyecto.
-
-### Paso 3: Configurar tu API Key
-1. Haz clic en el icono de **Code Explainer** en la barra de extensiones para desplegar el Side Panel.
-2. Pulsa en el icono de engranaje (⚙️) en la cabecera.
-3. Pega tu API Key de Gemini y haz clic en **Guardar**.
+1. Abre Chrome y entra en `chrome://extensions/`.
+2. Activa el interruptor **"Modo de desarrollador"** (esquina superior derecha).
+3. Haz clic en **"Cargar descomprimida"** (Load unpacked).
+4. Selecciona la carpeta `sidepanel-code-explainer`.
 
 ---
 
 ## 🕹️ Guía de Uso
 
-1. Navega por cualquier sitio web (por ejemplo [GitHub](https://github.com) o [StackOverflow](https://stackoverflow.com)).
-2. Resalta con el cursor cualquier función, expresión regular o bloque de código.
-3. Haz clic derecho y selecciona **"Analizar con Code Explainer"**.
-4. El panel lateral se abrirá automáticamente con el código cargado.
-5. Elige la acción deseada:
-   - **Explicar lógica**: Obtén un desglose didáctico del código.
-   - **Buscar bugs**: Revisa posibles errores y edge cases.
-   - **Refactorizar / Convertir**: Escribe o elige el lenguaje de destino y obtén la versión modernizada.
-6. Copia el resultado directamente al portapapeles con el botón **"Copiar"**.
+1. Selecciona cualquier fragmento de código en cualquier página web.
+2. Haz clic derecho y elige **"Analizar con Code Explainer"**.
+3. El panel lateral se abrirá automáticamente con el código cargado.
+4. Pulsa cualquiera de los botones:
+   - **Explicar lógica**
+   - **Buscar bugs**
+   - **Refactorizar / Convertir** (especificando el lenguaje que desees)
+5. Puedes copiar la respuesta al portapapeles con un clic.
 
 ---
 
 ## 🔒 Privacidad y Permisos
 
-Esta extensión respeta al 100% tu privacidad:
-- **`sidePanel`**: Requerido para renderizar la interfaz en el panel nativo lateral.
-- **`contextMenus`**: Requerido para añadir la opción en el menú contextual del clic derecho.
-- **`storage`**: Almacena tu API Key y la última selección únicamente en tu navegador.
-- **`activeTab`**: Permite capturar la selección del usuario bajo demanda sin inyectar scripts permanentes en segundo plano.
+- **Sin permisos de red externos:** La extensión no realiza ninguna petición HTTP hacia APIs externas.
+- **`sidePanel`**: Renderiza la interfaz en el panel nativo de Chrome.
+- **`contextMenus`**: Agrega el atajo en el menú del clic derecho sobre selecciones.
+- **`storage`**: Recuerda el último fragmento de código analizado localmente.
 
 ---
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT. Consulta el archivo `LICENSE` para más detalles.
-
+Distribuido bajo la Licencia MIT. Consulta el archivo `LICENSE` para más información.

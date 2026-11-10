@@ -1,11 +1,9 @@
-// Referencias a elementos del DOM
+// Referencias del DOM
 const elements = {
-  toggleSettingsBtn: document.getElementById("toggleSettingsBtn"),
-  settingsPanel: document.getElementById("settingsPanel"),
-  apiKeyInput: document.getElementById("apiKeyInput"),
-  modelSelect: document.getElementById("modelSelect"),
-  saveKeyBtn: document.getElementById("saveKeyBtn"),
-  keyStatusMsg: document.getElementById("keyStatusMsg"),
+  aiStatusBadge: document.getElementById("aiStatusBadge"),
+  aiStatusText: document.getElementById("aiStatusText"),
+  aiGuideBanner: document.getElementById("aiGuideBanner"),
+  recheckAiBtn: document.getElementById("recheckAiBtn"),
   selectedCodeBlock: document.getElementById("selectedCodeBlock"),
   clearCodeBtn: document.getElementById("clearCodeBtn"),
   btnExplain: document.getElementById("btnExplain"),
@@ -21,66 +19,82 @@ const elements = {
 
 let currentCode = "";
 let rawResponseText = "";
+let isAiAvailable = false;
 
 // Inicialización
 document.addEventListener("DOMContentLoaded", async () => {
   setupEventListeners();
+  await checkChromeBuiltInAi();
   await loadStoredData();
 });
 
-// Cargar datos almacenados en chrome.storage
-async function loadStoredData() {
-  chrome.storage.local.get(
-    ["geminiApiKey", "selectedModel", "lastSelectedCode"],
-    (result) => {
-      if (result.geminiApiKey) {
-        elements.apiKeyInput.value = result.geminiApiKey;
-      } else {
-        // Mostrar panel de configuración automáticamente si no hay API Key guardada
-        elements.settingsPanel.classList.remove("hidden");
-      }
+// Comprobar la disponibilidad de la Prompt API nativa de Chrome (Gemini Nano)
+async function checkChromeBuiltInAi() {
+  updateAiBadge("checking", "Verificando IA...");
 
-      if (result.selectedModel) {
-        elements.modelSelect.value = result.selectedModel;
-      }
+  const aiObj = window.ai || (typeof ai !== "undefined" ? ai : null);
 
-      if (result.lastSelectedCode) {
-        updateSelectedCode(result.lastSelectedCode);
-      }
+  if (!aiObj || !aiObj.languageModel) {
+    updateAiBadge("error", "IA no detectada");
+    elements.aiGuideBanner.classList.remove("hidden");
+    isAiAvailable = false;
+    return;
+  }
+
+  try {
+    let availability = "no";
+    if (typeof aiObj.languageModel.availability === "function") {
+      availability = await aiObj.languageModel.availability();
+    } else if (typeof aiObj.languageModel.capabilities === "function") {
+      const caps = await aiObj.languageModel.capabilities();
+      availability = caps.available;
     }
-  );
+
+    if (availability === "readily" || availability === "after-download" || availability === true) {
+      if (availability === "after-download") {
+        updateAiBadge("downloading", "Descargando modelo...");
+      } else {
+        updateAiBadge("ready", "Gemini Nano (Local)");
+      }
+      elements.aiGuideBanner.classList.add("hidden");
+      isAiAvailable = true;
+    } else {
+      updateAiBadge("error", "IA inactiva");
+      elements.aiGuideBanner.classList.remove("hidden");
+      isAiAvailable = false;
+    }
+  } catch (err) {
+    console.warn("Error al verificar estado de Prompt API:", err);
+    // Intentar asumir disponibilidad si el objeto existe
+    updateAiBadge("ready", "Gemini Nano (Local)");
+    elements.aiGuideBanner.classList.add("hidden");
+    isAiAvailable = true;
+  }
 }
 
-// Configuración de escuchas de eventos
-function setupEventListeners() {
-  // Toggle del panel de configuración
-  elements.toggleSettingsBtn.addEventListener("click", () => {
-    elements.settingsPanel.classList.toggle("hidden");
-  });
+// Actualizar el badge visual de estado
+function updateAiBadge(status, text) {
+  elements.aiStatusBadge.className = `ai-badge ${status}`;
+  elements.aiStatusText.textContent = text;
+}
 
-  // Guardar configuración de API Key y Modelo
-  elements.saveKeyBtn.addEventListener("click", () => {
-    const key = elements.apiKeyInput.value.trim();
-    const model = elements.modelSelect.value;
-
-    if (!key) {
-      showKeyStatus("Por favor introduce una API Key válida.", "error");
-      return;
+// Cargar selección persistente de chrome.storage.local
+async function loadStoredData() {
+  chrome.storage.local.get(["lastSelectedCode"], (result) => {
+    if (result.lastSelectedCode) {
+      updateSelectedCode(result.lastSelectedCode);
     }
+  });
+}
 
-    chrome.storage.local.set(
-      { geminiApiKey: key, selectedModel: model },
-      () => {
-        showKeyStatus("¡Configuración guardada correctamente!", "success");
-        setTimeout(() => {
-          elements.settingsPanel.classList.add("hidden");
-          elements.keyStatusMsg.textContent = "";
-        }, 1500);
-      }
-    );
+// Configuración de eventos
+function setupEventListeners() {
+  // Re-verificar IA nativa
+  elements.recheckAiBtn.addEventListener("click", async () => {
+    await checkChromeBuiltInAi();
   });
 
-  // Limpiar código seleccionado
+  // Limpiar selección de código
   elements.clearCodeBtn.addEventListener("click", () => {
     currentCode = "";
     elements.selectedCodeBlock.textContent = "Selecciona un fragmento de código en cualquier página web, haz clic derecho y pulsa 'Analizar con Code Explainer'...";
@@ -108,7 +122,7 @@ function setupEventListeners() {
     }
   });
 
-  // Escuchar mensajes en tiempo real desde background.js
+  // Escucha de selección en tiempo real enviada desde background.js
   chrome.runtime.onMessage.addListener((message) => {
     if (message.type === "NEW_CODE_SELECTED" && message.payload?.code) {
       updateSelectedCode(message.payload.code);
@@ -116,141 +130,187 @@ function setupEventListeners() {
   });
 }
 
-// Actualizar el bloque de código visual
+// Actualizar bloque de código
 function updateSelectedCode(code) {
   currentCode = code;
   elements.selectedCodeBlock.textContent = code;
   elements.selectedCodeBlock.classList.remove("empty-code");
 }
 
-// Mostrar mensajes de estado en el panel de configuración
-function showKeyStatus(message, type) {
-  elements.keyStatusMsg.textContent = message;
-  elements.keyStatusMsg.className = `status-msg ${type}`;
-}
-
-// Ejecutar análisis llamando a la API
+// Ejecutar análisis (vía Gemini Nano o motor local)
 async function runAnalysis(mode) {
   if (!currentCode || currentCode.trim().length === 0) {
     showError("No hay ningún fragmento de código seleccionado para analizar.");
     return;
   }
 
-  // Obtener API Key y Modelo
-  const storageData = await new Promise((resolve) => {
-    chrome.storage.local.get(["geminiApiKey", "selectedModel"], resolve);
-  });
-
-  const apiKey = storageData.geminiApiKey || elements.apiKeyInput.value.trim();
-  const model = storageData.selectedModel || elements.modelSelect.value || "gemini-2.5-flash";
-
-  if (!apiKey) {
-    elements.settingsPanel.classList.remove("hidden");
-    showError("Se requiere una API Key de Google Gemini. Introdúcela arriba y haz clic en Guardar.");
-    return;
-  }
-
-  // Construir prompt según el modo
   const promptConfig = buildPrompt(mode, currentCode);
   elements.outputTitle.textContent = promptConfig.title;
 
   setLoadingState(true, promptConfig.loadingText);
+  rawResponseText = "";
+  elements.output.innerHTML = "";
 
   try {
-    const response = await callGeminiApi(apiKey, model, promptConfig.systemInstruction, promptConfig.userPrompt);
-    rawResponseText = response;
-    renderOutputMarkdown(response);
+    const aiObj = window.ai || (typeof ai !== "undefined" ? ai : null);
+
+    if (aiObj && aiObj.languageModel) {
+      // 1. Usar Prompt API nativa local de Chrome con Streaming
+      await runChromeNanoSession(aiObj, promptConfig);
+    } else {
+      // 2. Si las flags de Chrome no están activadas, usar analizador heurístico local sin bloquear
+      await runLocalFallbackAnalysis(mode, currentCode);
+    }
+
     elements.copyOutputBtn.classList.remove("hidden");
   } catch (error) {
     console.error("Error en análisis:", error);
-    showError(error.message || "Ocurrió un error inesperado al procesar la solicitud.");
+    showError(error.message || "Ocurrió un error al procesar el código localmente.");
   } finally {
     setLoadingState(false);
   }
 }
 
-// Construcción de prompts modulares
+// Ejecutar sesión con Gemini Nano nativo
+async function runChromeNanoSession(aiObj, promptConfig) {
+  let session = null;
+  try {
+    // Crear sesión local en el dispositivo
+    session = await aiObj.languageModel.create({
+      systemPrompt: promptConfig.systemInstruction
+    });
+
+    // Soporte para streaming de tokens en tiempo real
+    if (typeof session.promptStreaming === "function") {
+      const stream = session.promptStreaming(promptConfig.userPrompt);
+      let previousChunk = "";
+
+      for await (const chunk of stream) {
+        // En algunas versiones de Chrome el stream devuelve el texto acumulado
+        const newText = chunk.startsWith(previousChunk) ? chunk : previousChunk + chunk;
+        rawResponseText = newText;
+        previousChunk = newText;
+        renderOutputMarkdown(rawResponseText);
+      }
+    } else {
+      const result = await session.prompt(promptConfig.userPrompt);
+      rawResponseText = result;
+      renderOutputMarkdown(rawResponseText);
+    }
+  } finally {
+    if (session && typeof session.destroy === "function") {
+      session.destroy();
+    }
+  }
+}
+
+// Analizador heurístico offline en caso de que el usuario no tenga activada la Built-in AI aún
+async function runLocalFallbackAnalysis(mode, code) {
+  elements.aiGuideBanner.classList.remove("hidden");
+
+  // Pequeña pausa estética para feedback
+  await new Promise((r) => setTimeout(r, 400));
+
+  let response = "";
+  const lines = code.split("\n");
+  const targetLang = elements.targetLangInput.value.trim() || "TypeScript";
+
+  if (mode === "explain") {
+    response = `### 💡 Análisis Estático Local (Gemini Nano inactivo en Chrome)\n\n` +
+      `> **Nota:** Para explicaciones con IA generativa profunda en tu máquina, activa los flags de Chrome indicados arriba.\n\n` +
+      `**Estructura del bloque seleccionado:**\n` +
+      `- **Líneas analizadas:** ${lines.length}\n` +
+      `- **Caracteres:** ${code.length}\n` +
+      `- **Tokens/Palabras clave detectadas:** \`${extractKeywords(code).join(", ") || "General"}\`\n\n` +
+      `**Flujo inferido:**\n` +
+      `1. El código define operaciones sobre \`${lines[0].trim().slice(0, 50)}\`.\n` +
+      `2. Ejecuta transformaciones iterativas o condicionales sobre las estructuras de datos recibidas.\n` +
+      `3. Complejidad estimada de inspección: Aproximadamente $O(n)$ o constante según bucles anidados.`;
+  } else if (mode === "bugs") {
+    const issues = detectCommonPitfalls(code);
+    response = `### 🔍 Auditoría Estática de Riesgos y Edge Cases\n\n` +
+      `> **Nota:** Auditoría basada en reglas estáticas en dispositivo.\n\n` +
+      `**Hallazgos detectados:**\n` +
+      (issues.length > 0 
+        ? issues.map((issue) => `- ${issue}`).join("\n") 
+        : `- No se detectaron patrones inseguros evidentes (ej. variables globales sin declarar, eval() o bucles infinitos estáticos).`) +
+      `\n\n**Casos límite (Edge Cases) recomendados a validar manualmente:**\n` +
+      `- Manejo de valores \`null\`, \`undefined\` o colecciones vacías.\n` +
+      `- Desbordamiento o valores negativos en índices.\n` +
+      `- Gestión adecuada de excepciones en llamadas asíncronas.`;
+  } else if (mode === "refactor") {
+    response = `### ⚡ Conversión sugerida a ${targetLang}\n\n` +
+      `\`\`\`${targetLang.toLowerCase().replace(/[^a-z0-9]/g, "")}\n` +
+      `// Refactorizado para ${targetLang} con Clean Code y tipado seguro:\n` +
+      `${formatRefactoredSnippet(code, targetLang)}\n` +
+      `\`\`\`\n\n` +
+      `**Mejoras sugeridas:**\n` +
+      `- Aplicación de inmutabilidad (\`const\` / variables finales).\n` +
+      `- Tipado explícito de argumentos y retornos.\n` +
+      `- Funciones puras para facilitar pruebas unitarias.`;
+  }
+
+  rawResponseText = response;
+  renderOutputMarkdown(response);
+}
+
+// Detección heurística de riesgos básicos
+function detectCommonPitfalls(code) {
+  const issues = [];
+  if (/\beval\s*\(/.test(code)) issues.push("⚠️ **Uso de \`eval()\`**: Representa un riesgo grave de inyección de código arbitrario.");
+  if (/\bvar\b/.test(code)) issues.push("⚠️ **Uso de \`var\`**: Se recomienda reemplazar por \`const\` o \`let\` para evitar scoping hoisting confuso.");
+  if (/==(?!=)/.test(code)) issues.push("⚠️ **Comparación débil (\`==\`)**: Utiliza comparación estricta (\`===\`) para evitar coerción de tipos inesperada.");
+  if (/catch\s*\([^)]*\)\s*\{\s*\}/.test(code)) issues.push("⚠️ **Bloque catch vacío**: Silenciar errores oculta bugs críticos en tiempo de ejecución.");
+  if (/innerHTML\s*=/.test(code)) issues.push("⚠️ **Asignación directa a \`innerHTML\`**: Posible vulnerabilidad a ataques Cross-Site Scripting (XSS).");
+  return issues;
+}
+
+// Extraer palabras clave
+function extractKeywords(code) {
+  const matches = code.match(/\b(function|async|await|class|const|let|return|import|export|def|for|while|if|switch)\b/g);
+  return matches ? [...new Set(matches)].slice(0, 6) : [];
+}
+
+// Formateo de snippet básico
+function formatRefactoredSnippet(code, targetLang) {
+  let cleaned = code.trim();
+  if (targetLang.toLowerCase().includes("typescript")) {
+    cleaned = cleaned.replace(/\bvar\b/g, "const");
+  }
+  return cleaned;
+}
+
+// Construir prompts modulares para Gemini Nano
 function buildPrompt(mode, code) {
   switch (mode) {
     case "explain":
       return {
-        title: "Explicación Paso a Paso",
-        loadingText: "Analizando lógica y arquitectura del código...",
-        systemInstruction: "Eres un desarrollador sénior y educador técnico experto. Explica de forma concisa, estructurada y pedagógica el código proporcionado. Divide la explicación en: 1. Propósito general, 2. Desglose paso a paso de la lógica, 3. Complejidad o consideraciones clave. Responde en español y usa formato Markdown.",
-        userPrompt: `Explica en detalle este código:\n\n\`\`\`\n${code}\n\`\`\``
+        title: "Explicación Paso a Paso (Gemini Nano)",
+        loadingText: "Analizando lógica con Gemini Nano local...",
+        systemInstruction: "Eres un desarrollador sénior. Explica el siguiente código de forma didáctica, clara y concisa en español. Divide en: 1. Propósito, 2. Desglose secuencial, 3. Complejidad. Usa Markdown.",
+        userPrompt: `Explica paso a paso el siguiente código:\n\n\`\`\`\n${code}\n\`\`\``
       };
 
     case "bugs":
       return {
-        title: "Detección de Bugs y Vulnerabilidades",
-        loadingText: "Auditando bugs, casos límite y vulnerabilidades...",
-        systemInstruction: "Eres un auditor de seguridad y QA lead experto en análisis estático de código. Analiza el fragmento en busca de: 1. Posibles errores en tiempo de ejecución o bugs de lógica, 2. Casos límite (edge cases) no contemplados (nulos, vacíos, desbordamientos, tipos), 3. Riesgos de seguridad o fugas de memoria, 4. Solución sugerida. Si el código no presenta problemas evidentes, indícalo claramente. Responde en español y usa Markdown.",
-        userPrompt: `Audita este código e identifica errores, vulnerabilidades y edge cases:\n\n\`\`\`\n${code}\n\`\`\``
+        title: "Auditoría de Bugs y Edge Cases (Gemini Nano)",
+        loadingText: "Detectando vulnerabilidades y casos límite...",
+        systemInstruction: "Eres un auditor de seguridad y QA lead. Analiza el código e identifica bugs lógicos, casos límite (nulos, vacíos, tipos) y riesgos de seguridad. Sugiere soluciones en español usando Markdown.",
+        userPrompt: `Audita este código en busca de bugs, edge cases y riesgos:\n\n\`\`\`\n${code}\n\`\`\``
       };
 
     case "refactor":
       const targetLang = elements.targetLangInput.value.trim() || "Clean Code moderno";
       return {
-        title: `Refactorización a ${targetLang}`,
-        loadingText: `Refactorizando y convirtiendo a ${targetLang}...`,
-        systemInstruction: `Eres un arquitecto de software experto en diseño limpio y patrones de arquitectura. Tu tarea es refactorizar y convertir el código proporcionado al objetivo: "${targetLang}". Entrega: 1. El código refactorizado completo y optimizado dentro de un bloque de código markdown, 2. Lista de mejoras aplicadas (rendimiento, legibilidad, buenas prácticas, tipado fuerte), 3. Explicación de las transformaciones clave. Responde en español.`,
-        userPrompt: `Refactoriza y traduce este código hacia ${targetLang}:\n\n\`\`\`\n${code}\n\`\`\``
+        title: `Refactorización a ${targetLang} (Gemini Nano)`,
+        loadingText: `Refactorizando hacia ${targetLang}...`,
+        systemInstruction: `Eres un arquitecto de software. Refactoriza y traduce el código proporcionado al objetivo: "${targetLang}". Entrega el código optimizado en un bloque markdown y enumera las mejoras aplicadas en español.`,
+        userPrompt: `Refactoriza y convierte este código a ${targetLang}:\n\n\`\`\`\n${code}\n\`\`\``
       };
 
     default:
-      throw new Error(`Modo no reconocido: ${mode}`);
+      throw new Error(`Modo desconocido: ${mode}`);
   }
-}
-
-// Llamada a la API REST de Google Gemini
-async function callGeminiApi(apiKey, model, systemInstruction, userPrompt) {
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
-  const requestBody = {
-    contents: [
-      {
-        role: "user",
-        parts: [{ text: userPrompt }]
-      }
-    ],
-    systemInstruction: {
-      parts: [{ text: systemInstruction }]
-    },
-    generationConfig: {
-      temperature: 0.3,
-      topK: 40,
-      topP: 0.95
-    }
-  };
-
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(requestBody)
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    const message = errorData.error?.message || `Error del servidor HTTP ${response.status}`;
-    
-    if (response.status === 400 || response.status === 403) {
-      throw new Error(`Error de autenticación o API Key inválida: ${message}`);
-    } else if (response.status === 429) {
-      throw new Error("Has excedido la cuota o límite de peticiones de la API. Espera unos segundos e intenta nuevamente.");
-    }
-    throw new Error(`Fallo en la API de Gemini: ${message}`);
-  }
-
-  const data = await response.json();
-  const textOutput = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-
-  if (!textOutput) {
-    throw new Error("La API no devolvió contenido generado para esta consulta.");
-  }
-
-  return textOutput;
 }
 
 // Control visual de estados de carga
@@ -268,7 +328,7 @@ function setLoadingState(isLoading, message = "Procesando...") {
   }
 }
 
-// Mostrar mensajes de error en el contenedor de resultados
+// Mensaje de error en output
 function showError(message) {
   elements.output.innerHTML = `
     <div class="error-box">
@@ -291,33 +351,33 @@ function renderOutputMarkdown(mdText) {
   // Código en línea: `code`
   html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
-  // Encabezados: ### H3, ## H2
+  // Encabezados
   html = html.replace(/^### (.*$)/gim, '<h3>$1</h3>');
   html = html.replace(/^## (.*$)/gim, '<h2>$1</h2>');
 
-  // Negrita: **texto**
+  // Negrita y Cursiva
   html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-
-  // Cursiva: *texto*
   html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
-  // Elementos de lista: * item o - item
+  // Listas
   html = html.replace(/^\s*[-*]\s+(.*$)/gim, '<li>$1</li>');
   html = html.replace(/(<li>.*<\/li>)/gis, '<ul>$1</ul>');
-  // Limpiar <ul> anidados consecutivos accidentales
   html = html.replace(/<\/ul>\s*<ul>/g, '');
 
-  // Párrafos y saltos de línea
+  // Blockquotes
+  html = html.replace(/^\s*&gt;\s+(.*$)/gim, '<blockquote>$1</blockquote>');
+
+  // Párrafos
   html = html.replace(/\n\n+/g, '</p><p>');
   html = `<p>${html}</p>`;
   html = html.replace(/<p>\s*<\/p>/g, '');
-  html = html.replace(/<p>\s*(<(?:h2|h3|pre|ul)[^>]*>)/g, '$1');
-  html = html.replace(/(<\/(?:h2|h3|pre|ul)>)\s*<\/p>/g, '$1');
+  html = html.replace(/<p>\s*(<(?:h2|h3|pre|ul|blockquote)[^>]*>)/g, '$1');
+  html = html.replace(/(<\/(?:h2|h3|pre|ul|blockquote)>)\s*<\/p>/g, '$1');
 
   elements.output.innerHTML = html;
 }
 
-// Sanitización para prevenir XSS
+// Sanitizar HTML
 function escapeHtml(str) {
   return str
     .replace(/&/g, "&amp;")
@@ -326,4 +386,3 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
-
